@@ -1,5 +1,7 @@
 import scrapy
 import requests
+import locale
+from datetime import datetime as dt
 
 class ScoreSpider(scrapy.Spider):
     name = 'score_spider'
@@ -15,11 +17,19 @@ class ScoreSpider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        items = []
-        print response.css('')
-        # for div in response.css('div')
-        # page = response.url.split("/")[-2]
-        # filename = 'quotes-%s.html' % page
-        # with open(filename, 'wb') as f:
-        #     f.write(response.body)
-        # self.log('Saved file %s' % filename)
+        # did not use yield since generators can cause undefined behaviour
+        # https://amir.rachum.com/blog/2017/03/03/generator-cleanup/
+        stats = {}
+        try:
+            score = response.xpath('//span[@itemprop="ratingValue"]/text()').get()
+            score_count = response.xpath('//span[@itemprop="ratingCount"]/text()').get()
+            stats['score'] = float(score)
+            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+            stats['score_count'] = locale.atoi(score_count)
+        except:
+            pass
+        
+        if len(stats) > 0:
+            stats['timestamp'] = dt.now().timestamp()
+            return stats
+            
