@@ -5,7 +5,44 @@
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
+import json
+from datetime import datetime as dt
+from urllib.request import pathname2url
+
+from scrapy import Request
+from scrapy.http import Response
+from scrapy.exceptions import IgnoreRequest
 from scrapy import signals
+
+# Define custom downloader middleware for wayback machine
+class WaybackMachineMiddleware:
+    # Class variables shared by all instances
+    cdx_url_template = ('http://web.archive.org/cdx/search/cdx?url={url}'
+                    '&output=json&fl=timestamp,original,statuscode,digest')
+    snapshot_url_template = 'http://web.archive.org/web/{timestamp}id_/{original}'
+
+    def __init__(self, crawler):
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler)
+
+    def process_request(self, request, spider):
+        # Let Wayback Machine requests pass through
+        if request.meta.get('wayback_machine_url'):
+            return
+        if request.meta.get('wayback_machine_cdx_request'):
+            return
+        # Otherwise request a CDX listing of available snapshots
+        return self.build_cdx_request(request)
+
+    def build_cdx_request(self, request):
+        cdx_url = self.cdx_url_template.format(url=pathname2url(request.url))
+        cdx_request = Request(cdx_url)
+        cdx_request.meta['wayback_machine_original_request'] = request
+        cdx_request.meta['wayback_machine_cdx_request'] = True
+        return cdx_request
 
 
 class MaltrendsSpiderMiddleware(object):

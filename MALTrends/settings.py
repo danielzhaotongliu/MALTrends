@@ -53,7 +53,7 @@ DOWNLOAD_DELAY = 5
 # Enable or disable downloader middlewares
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 DOWNLOADER_MIDDLEWARES = {
-   'MALTrends.middlewares.MaltrendsDownloaderMiddleware': 543,
+   'MALTrends.middlewares.WaybackMachineMiddleware': 50,
 }
 
 # Enable or disable extensions
