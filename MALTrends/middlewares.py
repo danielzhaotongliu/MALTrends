@@ -107,9 +107,29 @@ class WaybackMachineMiddleware:
             return new_dict
 
         snapshots = list(map(build_dict, rows))
-        print(snapshots)
+        snapshots = self.filter_snapshots(snapshots)
 
+        # construct the requests
+        snapshot_requests = []
+        for snapshot in snapshots:
+            # update the url to point to the snapshot
+            url = self.snapshot_url_template.format(**snapshot)
+            original_request = meta['wayback_machine_original_request']
+            snapshot_request = original_request.replace(url=url)
 
+            # attach extension specify metadata to the request
+            snapshot_request.meta.update({
+                'wayback_machine_original_request': original_request,
+                'wayback_machine_url': snapshot_request.url,
+                'wayback_machine_time': snapshot['datetime'],
+            })
+
+            snapshot_requests.append(snapshot_request)
+
+        return snapshot_requests
+
+    def filter_snapshots(self, snapshots):
+        pass
 
 
 class MaltrendsSpiderMiddleware(object):
