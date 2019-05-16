@@ -14,9 +14,9 @@ from scrapy.http import Response
 from scrapy.exceptions import IgnoreRequest
 from scrapy import signals
 
-# Define custom downloader middleware for wayback machine
+# define custom downloader middleware for wayback machine
 class WaybackMachineMiddleware:
-    # Class variables shared by all instances
+    # class variables shared by all instances
     cdx_url_template = ('http://web.archive.org/cdx/search/cdx?url={url}'
                     '&output=json&fl=timestamp,original,statuscode,digest')
     snapshot_url_template = 'http://web.archive.org/web/{timestamp}id_/{original}'
@@ -29,12 +29,12 @@ class WaybackMachineMiddleware:
         return cls(crawler)
 
     def process_request(self, request, spider):
-        # Let Wayback Machine requests pass through
+        # let Wayback Machine requests pass through
         if request.meta.get('wayback_machine_url'):
             return
         if request.meta.get('wayback_machine_cdx_request'):
             return
-        # Otherwise request a CDX listing of available snapshots
+        # otherwise request a CDX listing of available snapshots
         return self.build_cdx_request(request)
 
     def build_cdx_request(self, request):
@@ -44,6 +44,29 @@ class WaybackMachineMiddleware:
         cdx_request.meta['wayback_machine_cdx_request'] = True
         return cdx_request
 
+    def process_response(self, request, response, spider):
+        meta = request.meta
+
+        # parse CDX requests and schedule future snapshot requests
+        if meta.get('wayback_machine_cdx_request'):
+            snapshot_requests = self.build_snapshot_requests(response, meta)
+
+            # treat empty listings as 404s
+            if len(snapshot_requests) < 1:
+                return Response(meta['wayback_machine_original_request'].url, status=404)
+
+            # schedule all of the snapshots
+            for snapshot_request in snapshot_requests:
+                self.crawler.engine.schedule(snapshot_request, spider)
+
+            # abort this request
+            raise UnhandledIgnoreRequest
+
+        # clean up snapshot responses
+        if meta.get('wayback_machine_url'):
+            return response.replace(url=meta['wayback_machine_original_request'].url)
+
+        return response
 
 class MaltrendsSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
