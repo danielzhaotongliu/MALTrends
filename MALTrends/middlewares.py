@@ -14,6 +14,9 @@ from scrapy.http import Response
 from scrapy.exceptions import IgnoreRequest
 from scrapy import signals
 
+# more information of the Wayback CDX Server API at: 
+# https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
+
 # define custom downloader middleware for wayback machine
 class WaybackMachineMiddleware:
     # class variables shared by all instances
@@ -29,11 +32,12 @@ class WaybackMachineMiddleware:
         return cls(crawler)
 
     def process_request(self, request, spider):
-        # let Wayback Machine requests pass through
+        # let Wayback Machine requests pass through without modification
         if request.meta.get('wayback_machine_url'):
             return
         if request.meta.get('wayback_machine_cdx_request'):
             return
+
         # otherwise request a CDX listing of available snapshots
         return self.build_cdx_request(request)
 
@@ -45,6 +49,7 @@ class WaybackMachineMiddleware:
         return cdx_request
 
     def process_response(self, request, response, spider):
+        # shallow copy from https://docs.scrapy.org/en/latest/topics/request-response.html
         meta = request.meta
 
         # parse CDX requests and schedule future snapshot requests
