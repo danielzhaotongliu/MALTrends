@@ -1,7 +1,7 @@
 import scrapy
 import requests
 import locale
-from datetime import datetime as dt
+from datetime import datetime
 
 class ScoreSpider(scrapy.Spider):
     name = 'score_spider'
@@ -30,6 +30,6 @@ class ScoreSpider(scrapy.Spider):
             pass
         
         if len(stats) > 0:
-            stats['timestamp'] = dt.now().timestamp()
+            stats['timestamp'] = response.meta['wayback_machine_time'].timestamp()
             return stats
             

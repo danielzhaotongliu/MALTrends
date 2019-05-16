@@ -27,6 +27,7 @@ class WaybackMachineMiddleware:
                     '&output=json&fl=timestamp,original,statuscode,digest')
     snapshot_url_template = 'http://web.archive.org/web/{timestamp}id_/{original}'
     timestamp_format = '%Y%m%d%H%M%S'
+    invalid_codes = {'3', '4'}
 
     def __init__(self, crawler):
         self.crawler = crawler
@@ -129,7 +130,24 @@ class WaybackMachineMiddleware:
         return snapshot_requests
 
     def filter_snapshots(self, snapshots):
-        pass
+        filtered_snapshots = []
+        for snapshot in snapshots:
+            # ignore entries with invalid timestamps
+            if not snapshot['datetime']:
+                continue
+
+            # ignore bot detections (e.g status="-")
+            if len(snapshot['statuscode']) != 3:
+                continue
+
+            # also don't download 400s or redirects (300s) 
+            # because the redirected URLs are also present
+            if snapshot['statuscode'][0] in self.invalid_codes:
+                continue
+
+            filtered_snapshots.append(snapshot)
+
+        return filtered_snapshots
 
 
 class MaltrendsSpiderMiddleware(object):
