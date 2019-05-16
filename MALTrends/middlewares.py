@@ -6,13 +6,16 @@
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
 import json
-from datetime import datetime as dt
+from datetime import datetime, timezone
 from urllib.request import pathname2url
 
 from scrapy import Request
 from scrapy.http import Response
 from scrapy.exceptions import IgnoreRequest
 from scrapy import signals
+
+class UnhandledIgnoreRequest(IgnoreRequest):
+    pass
 
 # more information of the Wayback CDX Server API at: 
 # https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
@@ -23,6 +26,7 @@ class WaybackMachineMiddleware:
     cdx_url_template = ('http://web.archive.org/cdx/search/cdx?url={url}'
                     '&output=json&fl=timestamp,original,statuscode,digest')
     snapshot_url_template = 'http://web.archive.org/web/{timestamp}id_/{original}'
+    timestamp_format = '%Y%m%d%H%M%S'
 
     def __init__(self, crawler):
         self.crawler = crawler
@@ -45,6 +49,9 @@ class WaybackMachineMiddleware:
         cdx_url = self.cdx_url_template.format(url=pathname2url(request.url))
         cdx_request = Request(cdx_url)
         cdx_request.meta['wayback_machine_original_request'] = request
+
+        # set flag such that the next new request will pass through
+        # the middleware unscathed and reach Wayback CDX server
         cdx_request.meta['wayback_machine_cdx_request'] = True
         return cdx_request
 
@@ -62,6 +69,7 @@ class WaybackMachineMiddleware:
 
             # schedule all of the snapshots
             for snapshot_request in snapshot_requests:
+                # TODO: might be unstable https://github.com/scrapy/scrapy/issues/542
                 self.crawler.engine.schedule(snapshot_request, spider)
 
             # abort this request
@@ -72,6 +80,37 @@ class WaybackMachineMiddleware:
             return response.replace(url=meta['wayback_machine_original_request'].url)
 
         return response
+
+    def build_snapshot_requests(self, response, meta):
+        assert meta.get('wayback_machine_cdx_request'), 'Not a CDX request meta.'
+        
+        # parse the CDX snapshot data
+        try:
+            data = json.loads(response.text)
+        except json.decoder.JSONDecodeError:
+            data = []
+        if len(data) < 2:
+            return []
+        keys, rows = data[0], data[1:]
+
+        def build_dict(row):
+            new_dict = {}
+            for i, key in enumerate(keys):
+                if key == 'timestamp':
+                    try:
+                        time = datetime.strptime(row[i], self.timestamp_format)
+                        new_dict['datetime'] = time.replace(tzinfo=timezone.utc)
+                    except ValueError:
+                        # this means an error in the date string
+                        new_dict['datetime'] = None
+                new_dict[key] = row[i]
+            return new_dict
+
+        snapshots = list(map(build_dict, rows))
+        print(snapshots)
+
+
+
 
 class MaltrendsSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
