@@ -1,6 +1,7 @@
 # Python
 venv/
 .vscode/
+*.code-workspace
 *.jl
 
 # Byte-compiled / optimized / DLL files
