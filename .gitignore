@@ -2,7 +2,6 @@
 venv/
 .vscode/
 *.code-workspace
-*.jl
 
 # MacOS system files
 .DS_Store
@@ -10,6 +9,3 @@ venv/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-
-# html page
-*_trend.html

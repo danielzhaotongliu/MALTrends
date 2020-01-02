@@ -8,7 +8,7 @@ This is a project that displays statistics over time of any anime on MyAnimeList
 
 - Clone this repo to your local machine using `https://github.com/danielzhaotongliu/MALTrends`
 
-### Setup
+### First Time Setup
 
 - Navigate to the MALTrends root directory, then run the Makefile to setup virtualenv and install libraries
 
@@ -19,6 +19,12 @@ $ make install
 
 ## Usage
 
+### Running the Project
+
+```shell
+$ source venv/bin/activate
+```
+
 ### Scrape Anime Statistics
 
 - Before running the spiders you need the MyAnimeList anime ID for the anime that you would like to scrape for
@@ -28,7 +34,7 @@ $ make install
 - Run the following command in the MALTrends root directory
 
 ```shell
-$ scrapy crawl score_spider -a id=MAL_anime_id -o snapshots.jl
+$ scrapy crawl score_spider -a id=MAL_id -o snapshots_MAL_id.jl
 ```
 
 ### Generate Interactive Time Series Graph
