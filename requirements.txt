@@ -14,7 +14,7 @@ incremental==17.5.0
 ipython-genutils==0.2.0
 jsonschema==3.0.1
 jupyter-core==4.4.0
-lxml==4.3.3
+lxml==4.6.5
 nbformat==4.4.0
 parsel==1.5.1
 plotly==3.9.0
